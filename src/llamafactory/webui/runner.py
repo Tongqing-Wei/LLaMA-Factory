@@ -117,6 +117,7 @@ class Runner:
             use_unsloth=(get("top.booster") == "unsloth"),
             use_liger_kernel=(get("top.booster") == "liger_kernel"),
             visual_inputs=get("top.visual_inputs"),
+            visual_inputs_type=get("top.visual_inputs_type"),
             dataset_dir=get("train.dataset_dir"),
             dataset=",".join(get("train.dataset")),
             cutoff_len=get("train.cutoff_len"),

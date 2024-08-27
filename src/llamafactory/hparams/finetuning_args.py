@@ -332,7 +332,7 @@ class FinetuningArguments(FreezeArguments, LoraArguments, RLHFArguments, GaloreA
     )
     freeze_vision_tower: bool = field(
         default=True,
-        metadata={"help": "Whether ot not to freeze vision tower in MLLM training."},
+        metadata={"help": "Whether ot not to freeze vision module in MLLM training."},
     )
     train_mm_proj_only: bool = field(
         default=False,
