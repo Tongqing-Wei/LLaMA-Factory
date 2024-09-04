@@ -213,7 +213,7 @@ class HuggingfaceEngine(BaseEngine):
         image: Optional["Image"] = None,
         input_kwargs: Optional[Dict[str, Any]] = {},
     ) -> Callable[[], str]:
-        gen_kwargs, _ = HuggingfaceEngine._process_args(
+        gen_kwargs, prompt_length = HuggingfaceEngine._process_args(
             model, tokenizer, processor, template, generating_args, messages, system, tools, image, input_kwargs
         )
         streamer = TextIteratorStreamer(tokenizer, skip_prompt=True, skip_special_tokens=True)
@@ -227,7 +227,7 @@ class HuggingfaceEngine(BaseEngine):
             except StopIteration:
                 raise StopAsyncIteration()
 
-        return stream
+        return stream, prompt_length
 
     @staticmethod
     @torch.inference_mode()
@@ -316,7 +316,7 @@ class HuggingfaceEngine(BaseEngine):
         )
         async with self.semaphore:
             with concurrent.futures.ThreadPoolExecutor() as pool:
-                stream = self._stream_chat(*input_args)
+                stream, self.prompt_length= self._stream_chat(*input_args)
                 while True:
                     try:
                         yield await loop.run_in_executor(pool, stream)
