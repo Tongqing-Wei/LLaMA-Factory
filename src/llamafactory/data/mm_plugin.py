@@ -3,6 +3,7 @@ from io import BytesIO
 from typing import TYPE_CHECKING, Dict, List, Optional, Sequence, Tuple, TypedDict, Union
 
 import numpy as np
+from torchvision import transforms
 
 from ..extras.constants import IGNORE_INDEX, IMAGE_PLACEHOLDER, VIDEO_PLACEHOLDER
 from ..extras.packages import is_pillow_available, is_pyav_available
@@ -372,11 +373,68 @@ class Qwen2vlPlugin(BasePlugin):
         return _get_mm_inputs(images, videos, processor)
 
 
+class Glm4vPlugin(BasePlugin):
+    def __init__(self, image_token: Optional[str], video_token: Optional[str]) -> None:
+        super().__init__(image_token, video_token)
+        self.transform = transforms.Compose(
+            [
+                transforms.Resize((1120, 1120), interpolation=transforms.InterpolationMode.BICUBIC),
+                transforms.ToTensor(),
+                transforms.Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)),
+            ]
+        )
+
+    def process_messages(
+        self,
+        messages: Sequence[Dict[str, str]],
+        images: Sequence["ImageInput"],
+        videos: Sequence["VideoInput"],
+        processor: Optional["ProcessorMixin"],
+    ) -> List[Dict[str, str]]:
+        num_images = 0
+        result_messages = []
+        for message in messages:
+            result_message = deepcopy(message)
+
+            content = deepcopy(message["content"])
+            while IMAGE_PLACEHOLDER in content:
+                if num_images >= len(images):
+                    raise ValueError("`len(images)` is less than the number of {} tokens.".format(IMAGE_PLACEHOLDER))
+
+                content = content.replace(
+                    IMAGE_PLACEHOLDER,
+                    "<|begin_of_image|><|endoftext|><|end_of_image|>",
+                    1,
+                )
+                num_images += 1
+
+            result_message["content"] = content
+            result_messages.append(result_message)
+
+        if len(images) != num_images:
+            raise ValueError("The number of images does not match the number of {} tokens".format(IMAGE_PLACEHOLDER))
+        return result_messages
+
+    def get_mm_inputs(
+        self,
+        images: Sequence["ImageInput"],
+        videos: Sequence["VideoInput"],
+        imglens: Sequence[int],
+        vidlens: Sequence[int],
+        seqlens: Sequence[int],
+        processor: Optional["ProcessorMixin"],
+    ) -> Dict[str, Union[List[int], "torch.Tensor"]]:
+        if len(images) > 1:
+            raise ValueError("Glm-4v-9b supports only one image as input per example.")
+        return {"_images": self.transform(images[0])}
+
+
 PLUGINS = {
     "base": BasePlugin,
     "llava": LlavaPlugin,
     "paligemma": PaliGemmaPlugin,
     "qwen2_vl": Qwen2vlPlugin,
+    "glm4v": Glm4vPlugin,
 }
 
 
