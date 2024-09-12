@@ -27,6 +27,7 @@ from typing_extensions import override
 from ...extras.logging import get_logger
 from ..callbacks import FixValueHeadModelCallback, PissaConvertCallback, SaveProcessorCallback
 from ..trainer_utils import create_custom_optimizer, create_custom_scheduler
+from ..push_to_ms import PushToMsHubMixin
 
 
 if TYPE_CHECKING:
@@ -39,7 +40,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-class PairwiseTrainer(Trainer):
+class PairwiseTrainer(PushToMsHubMixin, Trainer):
     r"""
     Inherits Trainer to compute pairwise loss.
     """
